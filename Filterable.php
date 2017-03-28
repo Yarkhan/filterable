@@ -6,14 +6,14 @@ trait Filterable{
 	public function scopeFilter($query,$request){
 		if(!$request) return $query;
 
-		foreach($request as $key => $val){
+		foreach($request as $operation => $arguments){
 			/**
 			 * actually whereHas. We loop through each value and organize it
 			 * in a way so that we can pass to scopeFilter in the related model
 			 */
-			if($key == 'has') {
+			if($operation == 'has') {
 				$queries = [];
-				foreach($val as $key => $val){
+				foreach($arguments as $key => $val){
 					list($related,$field) = explode('.',$key);
 					if(!isset($queries[$related])) $queries[$related] = [];
 					$queries[$related][$field] = $val;
@@ -29,46 +29,43 @@ trait Filterable{
 			 * with() operation. Converts $val to array if it isn't.
 			 * replaces ":" to "." to allow ("model.otherModel")
 			 */
-			if($key == 'with'){
-				if(!is_array($val)) $val = [$val];
+			if($operation == 'with'){
+				if(!is_array($arguments)) $arguments = [$arguments];
 				$query->with(...array_map(function($a){
 					return str_replace(':','.',$a);
-				},$val));
+				},$arguments));
 				continue;
 			}
 			/**
 			 * Dead simple here on...
 			 */
-			if($key == 'limit'){
-				$query->limit($val);
+			if($operation == 'limit'){
+				$query->limit($arguments);
 				continue;
 			}
-			if($key == 'offset'){
-				$query->offset($val);
+			if($operation == 'offset'){
+				$query->offset($arguments);
 				continue;
 			}
-			if($key == 'orderBy'){
-				$query->orderBy(explode(',',$val));
+			if($operation == 'orderBy'){
+				$query->orderBy(explode(',',$arguments));
 				continue;
 			}
-			if($key == 'fields'){
-				$query->select(explode(',',$val));
+			if($operation == 'fields'){
+				$query->select(explode(',',$arguments));
 				continue;
 			}
-			/**
-			 * Common where() operations
-			 */
-			$operations = ['eq','gt','lt','bt','like'];
 
 			/**
 			 * where()
-			 * we search for the "_operation" suffix in the key names
+			 * we search for the "_$operations" suffix in the key names
 			 * if not there, query and bail out
 			 */
-			$parts = explode('_',$key);
+			$operations = ['eq','gt','lt','bt','like'];
+			$parts = explode('_',$operation);
 			if(!in_array(end($parts),$operations)){
-				if(!is_array($val)) $val = [$val];
-				$query->where($key,...$val);
+				if(!is_array($arguments)) $arguments = [$arguments];
+				$query->where($operation,...$arguments);
 				continue;
 			}
 
@@ -78,13 +75,13 @@ trait Filterable{
 			$op = array_splice($parts,-1,1)[0];
 			$column = implode('_',$parts);
 
-			$op == 'gt' and $query->where($column,'>',$val);
+			$op == 'gt' and $query->where($column,'>',$arguments);
 
-			$op == 'lt' and $query->where($column,'<',$val);
+			$op == 'lt' and $query->where($column,'<',$arguments);
 
-			$op == 'like' and $query->where($column,'like',$val);
+			$op == 'like' and $query->where($column,'like',$arguments);
 
-			$op == 'bt' and	$query->whereBetween($column,explode(',',$val));
+			$op == 'bt' and	$query->whereBetween($column,explode(',',$arguments));
 
 		}
 
