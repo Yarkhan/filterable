@@ -1,10 +1,16 @@
 <?php
+namespace App;
+
 trait Filterable{
 
 	public function scopeFilter($query,$request){
 		if(!$request) return $query;
-		$operations = ['eq','gt','lt','bt','like'];
+
 		foreach($request as $key => $val){
+			/**
+			 * actually whereHas. We loop through each value and organize it
+			 * in a way so that we can pass to scopeFilter in the related model
+			 */
 			if($key == 'has') {
 				$queries = [];
 				foreach($val as $key => $val){
@@ -19,6 +25,10 @@ trait Filterable{
 				}
 				continue;
 			}
+			/**
+			 * with() operation. Converts $val to array if it isn't.
+			 * replaces ":" to "." to allow ("model.otherModel")
+			 */
 			if($key == 'with'){
 				if(!is_array($val)) $val = [$val];
 				$query->with(...array_map(function($a){
@@ -26,6 +36,9 @@ trait Filterable{
 				},$val));
 				continue;
 			}
+			/**
+			 * Dead simple here on...
+			 */
 			if($key == 'limit'){
 				$query->limit($val);
 				continue;
@@ -42,6 +55,16 @@ trait Filterable{
 				$query->select(explode(',',$val));
 				continue;
 			}
+			/**
+			 * Common where() operations
+			 */
+			$operations = ['eq','gt','lt','bt','like'];
+
+			/**
+			 * where()
+			 * we search for the "_operation" suffix in the key names
+			 * if not there, query and bail out
+			 */
 			$parts = explode('_',$key);
 			if(!in_array(end($parts),$operations)){
 				if(!is_array($val)) $val = [$val];
@@ -49,6 +72,9 @@ trait Filterable{
 				continue;
 			}
 
+			/**
+			 * We found the operation. Just query and walk away
+			 */
 			$op = array_splice($parts,-1,1)[0];
 			$column = implode('_',$parts);
 
