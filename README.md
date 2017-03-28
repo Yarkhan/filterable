@@ -30,7 +30,7 @@ class PostController extends Controller{
 | example.com/api/posts?fields=id,title                 | $postModel->select('id','title')          |
 | example.com/api/posts?with=comments                   | $postModel->with('comments')              |
 | example.com/api/posts?with=comments:author            | $postModel->with('comments.author')       |
-| example.com/api/posts?with[]=comments,with[]=author   | $postModel->with('comments','author')     |
+| example.com/api/posts?with[]=comments&with[]=author   | $postModel->with('comments','author')     |
 
 ## Bonus 
 ### Has 
